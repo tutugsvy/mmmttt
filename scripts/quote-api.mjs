@@ -2,7 +2,7 @@ import http from 'node:http';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { decodeEventLog, parseAbiItem } from 'viem';
+import { decodeEventLog, getEventSelector, parseAbiItem } from 'viem';
 
 const PORT = Number(process.env.PORT || 4392);
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
@@ -15,6 +15,7 @@ const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const NATIVE = '0x0000000000000000000000000000000000000000';
 const FACTORY = '0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e';
 const LAUNCH_EVENT = parseAbiItem('event TokenLaunched(address indexed token,address indexed curve,address indexed deployer,address pairToken,uint256 launchConfigId,uint256 graduationThreshold)');
+const LAUNCH_TOPIC = getEventSelector(LAUNCH_EVENT).toLowerCase();
 const REGISTRY = process.env.MOTIVE_REGISTRY || '/var/lib/motive/launches.json';
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type' };
 
@@ -35,11 +36,14 @@ async function registerToken(body) {
   const txHash = String(body.txHash || ''); const wallet = String(body.wallet || '').toLowerCase();
   if (!/^0x[0-9a-f]{64}$/i.test(txHash) || !ADDRESS.test(wallet)) throw new Error('Invalid launch receipt.');
   const receipt = await rpc('eth_getTransactionReceipt', [txHash]); if (!receipt || receipt.status !== '0x1') throw new Error('Launch receipt is not confirmed.');
-  const log = receipt.logs.find((item) => String(item.address).toLowerCase() === FACTORY && item.topics?.[0]?.toLowerCase() === LAUNCH_EVENT.topic0.toLowerCase());
+  const log = receipt.logs.find((item) => String(item.address).toLowerCase() === FACTORY && item.topics?.[0]?.toLowerCase() === LAUNCH_TOPIC);
   if (!log) throw new Error('Receipt is not a MOTIVE launch.');
   const decoded = decodeEventLog({ abi: [LAUNCH_EVENT], data: log.data, topics: log.topics });
   if (String(decoded.args.deployer).toLowerCase() !== wallet) throw new Error('Wallet does not match launch deployer.');
-  const item = await tokenData(decoded.args.token, decoded.args.deployer, txHash, Number(BigInt(receipt.blockNumber)), body);
+  const launchedToken = decoded.args.token;
+  const deployer = decoded.args.deployer;
+  if (!ADDRESS.test(String(launchedToken)) || !ADDRESS.test(String(deployer))) throw new Error('Launch event has invalid addresses.');
+  const item = await tokenData(launchedToken, deployer, txHash, Number(BigInt(receipt.blockNumber)), body);
   const items = await readRegistry(); await writeRegistry([...items.filter((x) => x.contract !== item.contract), item]); return item;
 }
 function parseUnits(value, decimals) { const [whole, fraction = ''] = String(value).split('.'); if (!/^\d+$/.test(whole) || fraction && !/^\d+$/.test(fraction) || fraction.length > decimals) throw new Error('Invalid amount.'); return BigInt(whole) * (10n ** BigInt(decimals)) + BigInt((fraction + '0'.repeat(decimals)).slice(0, decimals) || '0'); }

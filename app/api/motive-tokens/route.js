@@ -1,11 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { decodeEventLog, parseAbiItem } from 'viem';
+import { decodeEventLog, getEventSelector, parseAbiItem } from 'viem';
 
 export const dynamic = 'force-dynamic';
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
 const FACTORY = '0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e'.toLowerCase();
 const EVENT = parseAbiItem('event TokenLaunched(address indexed token,address indexed curve,address indexed deployer,address pairToken,uint256 launchConfigId,uint256 graduationThreshold)');
+const EVENT_TOPIC = getEventSelector(EVENT).toLowerCase();
 const STORE = path.join(process.cwd(), 'data', 'motive-launches.json');
 const ZERO_DEPLOYER = '0x0000000000000000000000000000000000000000';
 const BOOTSTRAP = [{ address: '0xbda70a84c93c9e4f30825b12706d9804be4cd55b', image: '', website: '', twitter: '', telegram: '' }];
@@ -25,7 +26,7 @@ export async function POST(request) {
     const body = await request.json(); const txHash = String(body.txHash || ''); const wallet = String(body.wallet || '').toLowerCase();
     if (!/^0x[0-9a-f]{64}$/i.test(txHash) || !/^0x[0-9a-f]{40}$/.test(wallet)) return Response.json({ error: 'Invalid launch receipt.' }, { status: 400 });
     const receipt = await rpc('eth_getTransactionReceipt', [txHash]); if (!receipt || receipt.status !== '0x1') return Response.json({ error: 'Launch receipt is not confirmed.' }, { status: 400 });
-    const log = receipt.logs.find((item) => String(item.address).toLowerCase() === FACTORY && item.topics?.[0]?.toLowerCase() === EVENT.topic0.toLowerCase());
+    const log = receipt.logs.find((item) => String(item.address).toLowerCase() === FACTORY && item.topics?.[0]?.toLowerCase() === EVENT_TOPIC);
     if (!log) return Response.json({ error: 'Receipt is not a MOTIVE launch.' }, { status: 400 });
     const decoded = decodeEventLog({ abi: [EVENT], data: log.data, topics: log.topics });
     if (String(decoded.args.deployer).toLowerCase() !== wallet) return Response.json({ error: 'Wallet does not match launch deployer.' }, { status: 403 });
