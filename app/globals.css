@@ -72,5 +72,13 @@
   .trade-market-picker button b{font-size:14px}
   .trade-market-picker button small{font-family:monospace;font-size:9px;color:var(--dim);overflow-wrap:anywhere}
   .trade-empty{margin:24px 0;color:var(--dim)}
+  .eco__row{grid-template-columns:38px 64px minmax(0,1fr) 24px;gap:12px;padding:24px 0;min-width:0}
+  .eco__row > *{min-width:0}
+  .eco__mark{display:block;width:64px;height:64px;max-width:64px;object-fit:contain}
+  .eco__name{font-size:24px;overflow-wrap:anywhere}
+  .eco__desc{font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+  .eco__arr{justify-self:end}
+  .hero__visual{width:100%;overflow:hidden}
+  .hero__visual svg{width:100vw;max-width:100%;height:auto}
 }
 
