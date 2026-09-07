@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { encodeFunctionData, parseAbi, parseEther, parseUnits } from 'viem';
 
+const REGISTRY_API = 'https://api.motivepad.fun/api/motive-tokens';
 const CHAIN_ID = '0x1237';
 const FACTORY = '0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e';
 const PERIPHERY = '0xe33E9E479dF8802cb0866d5d05258bEc4cF62948';
@@ -142,7 +143,7 @@ export default function LauncherPage() {
       if (!receipt) setStatus(`Transaction pending: ${hash}`);
       else if (receipt.status === '0x1') {
         setStatus('Token launched. Registering it in MOTIVE Discover…');
-        const registration = await fetch('/api/motive-tokens', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txHash: hash, wallet: built.account, name: form.name, ticker: form.ticker, website: form.website, twitter: form.x, telegram: form.telegram, image: form.logo }) });
+        const registration = await fetch(REGISTRY_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txHash: hash, wallet: built.account, name: form.name, ticker: form.ticker, website: form.website, twitter: form.x, telegram: form.telegram, image: form.logo }) });
         const registered = await registration.json().catch(() => ({}));
         setStatus(registration.ok ? 'Token launched and added to MOTIVE Discover.' : `Token launched, but Discover registration failed: ${registered.error || 'try again later'}`);
       }

@@ -6,6 +6,8 @@ import { loadTokenLive } from '../../../lib/live';
 import { loadGmgnToken } from '../../../lib/gmgn-live';
 import { getToken, loadLiveTokens, loadTokenByContract, TOKENS, sparkPath, fmtUsd, fmtNum, mockTx, chartSeries } from '../../../lib/tokens';
 
+const REGISTRY_API = 'https://api.motivepad.fun/api/motive-tokens';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -20,7 +22,8 @@ export async function generateMetadata({ params }) {
 
 export default async function ProjectPage({ params }) {
   const slug = typeof params?.slug === 'string' ? params.slug : params?.slug?.[0];
-  const t = getToken(slug) || (await loadLiveTokens().catch(() => [])).find((x) => x.slug === slug) || (slug?.startsWith('token-0x') ? await loadTokenByContract(slug.slice(6)).catch(() => null) : null);
+  const registry = await fetch(REGISTRY_API, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).catch(() => null);
+  const t = getToken(slug) || (Array.isArray(registry?.tokens) ? registry.tokens.find((x) => x.slug === slug) : null) || (await loadLiveTokens().catch(() => [])).find((x) => x.slug === slug) || (slug?.startsWith('token-0x') ? await loadTokenByContract(slug.slice(6)).catch(() => null) : null);
   if (!t) notFound();
   const live = t.contract?.toLowerCase() === '0xc37f9b4eb729a1833f6bbef3400ce4be203dc691' ? await loadTokenLive().catch(() => null) : null;
   const screening = t.contract?.toLowerCase() === '0xc37f9b4eb729a1833f6bbef3400ce4be203dc691' ? await loadGmgnToken().catch(() => null) : null;

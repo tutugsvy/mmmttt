@@ -9,6 +9,7 @@ const MAINNET = { chainId: '0x1237' };
 const SWAP_ROUTER = '0x65050a9b7e5075a2ba5ced7b1b64ee66262c40dc';
 const SWAP_POOL = '0x00a59851d5ce3c4de389ab05f68d5216193e0d85';
 const NATIVE = '0x0000000000000000000000000000000000000000';
+const REGISTRY_API = 'https://api.motivepad.fun/api/motive-tokens';
 const QUOTE_API = 'https://api.motivepad.fun/api/quote';
 const SWAP_ABI = parseAbi(['function swap((uint8,address,address,address,uint24,int24,address,bytes,address,bytes32)[] routes,address recipient,uint256 amountIn,uint256 amountOutMin,uint256 deadline)']);
 const CURVE_ABI = parseAbi(['function buy(uint256 quoteIn,uint256 minTokensOut,address recipient) payable returns (uint256 tokensOut)','function sell(uint256 tokensIn,uint256 minQuoteOut,address recipient) returns (uint256 quoteOut)']);
@@ -56,7 +57,7 @@ export default function TradePage() {
   const [slippage, setSlippage] = useState('1');
 
   useEffect(() => {
-    fetch('/api/motive-tokens', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => {
+    fetch(REGISTRY_API, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => {
       const available = Array.isArray(data?.tokens) ? data.tokens : [];
       setTokens(available);
       const address = new URLSearchParams(window.location.search).get('token')?.toLowerCase();
