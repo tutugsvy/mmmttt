@@ -64,7 +64,7 @@ export default function TradePage() {
       const available = Array.isArray(data?.tokens) ? data.tokens : [];
       setTokens(available);
       const address = new URLSearchParams(window.location.search).get('token')?.toLowerCase();
-      const selected = address ? available.find((x) => x.contract?.toLowerCase() === address) : available[0];
+      const selected = address ? available.find((x) => x.contract?.toLowerCase() === address) : null;
       if (selected) setToken(selected);
     }).catch(() => {});
     const address = new URLSearchParams(window.location.search).get('token')?.toLowerCase();
