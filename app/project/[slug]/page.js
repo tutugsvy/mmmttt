@@ -25,11 +25,11 @@ export default async function ProjectPage({ params }) {
   const registry = await fetch(REGISTRY_API, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).catch(() => null);
   const t = getToken(slug) || (Array.isArray(registry?.tokens) ? registry.tokens.find((x) => x.slug === slug) : null) || (await loadLiveTokens().catch(() => [])).find((x) => x.slug === slug) || (slug?.startsWith('token-0x') ? await loadTokenByContract(slug.slice(6)).catch(() => null) : null);
   if (!t) notFound();
-  const live = t.contract?.toLowerCase() === '0xc37f9b4eb729a1833f6bbef3400ce4be203dc691' ? await loadTokenLive().catch(() => null) : null;
+  const live = t.contract ? await loadTokenLive(t.contract).catch(() => null) : null;
   const screening = t.contract?.toLowerCase() === '0xc37f9b4eb729a1833f6bbef3400ce4be203dc691' ? await loadGmgnToken().catch(() => null) : null;
-  const tokenImage = screening?.logo || '';
-  const tokenWebsite = screening?.website || '';
-  const tokenTwitter = screening?.twitter || '';
+  const tokenImage = t.image || screening?.logo || '';
+  const tokenWebsite = t.website || screening?.website || '';
+  const tokenTwitter = t.twitter || screening?.twitter || '';
   const price = t.mcap > 0 ? (t.mcap / 1_000_000_000) * (1 + (t.vol / t.mcap) * 0.4) : 0;
   const priceLabel = t.mcap > 0 ? `$${price.toFixed(4)}` : '—';
   const changeLabel = t.mcap > 0 ? `+${(4 + (t.vol / t.mcap) * 40).toFixed(1)}% 24H` : 'LIVE · NO MARKET DATA';
@@ -71,9 +71,9 @@ export default async function ProjectPage({ params }) {
           </div>
 
           <div className="proj__stats">
-            <div className="proj__stat"><span className="micro">Market Cap</span><b className="num">{live ? `${live.marketCapEth.toFixed(3)} ETH` : fmtUsd(t.mcap)}</b></div>
-            <div className="proj__stat"><span className="micro">Liquidity</span><b className="num">{live ? `${live.liquidityEth.toFixed(3)} ETH` : fmtUsd(t.vol)}</b></div>
-            <div className="proj__stat"><span className="micro">Holders</span><b className="num">{screening ? fmtNum(screening.holders) : fmtNum(t.holders)}</b></div>
+            <div className="proj__stat"><span className="micro">Market Cap</span><b className="num">{live?.marketCapEth ? `${live.marketCapEth.toFixed(3)} ETH` : '—'}</b></div>
+            <div className="proj__stat"><span className="micro">Liquidity</span><b className="num">{live?.liquidityEth ? `${live.liquidityEth.toFixed(3)} ETH` : '—'}</b></div>
+            <div className="proj__stat"><span className="micro">Holders</span><b className="num">{live?.holders || screening?.holders || '—'}</b></div>
             <div className="proj__stat"><span className="micro">Members</span><b className="num">{fmtNum(t.members)}</b></div>
             <div className="proj__stat"><span className="micro">Launched</span><b>{t.age}</b></div>
           </div>
