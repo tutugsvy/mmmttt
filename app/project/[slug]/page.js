@@ -53,7 +53,7 @@ export default async function ProjectPage({ params }) {
           </div>
 
           <div className="proj__id">
-            <span className="proj__mono">{t.ticker.slice(0, 2)}</span>
+            {tokenImage ? <img className="proj__mono" src={tokenImage} alt={`${t.name} logo`} /> : <span className="proj__mono">{t.ticker.slice(0, 2)}</span>}
             <div>
               <h1 className="h1" style={{ marginBottom: 8 }}>{t.name}</h1>
               <span className="h3" style={{ color: 'var(--dim)' }}>${t.ticker}</span>
@@ -78,7 +78,7 @@ export default async function ProjectPage({ params }) {
             <div className="proj__stat"><span className="micro">Launched</span><b>{t.age}</b></div>
           </div>
           {t.contract && <div className="proj__contract" style={{ marginTop: 24, padding: '16px 18px', border: '1px solid var(--hair)', display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
-            {tokenImage ? <img src={tokenImage} alt={`${t.name} logo`} width="64" height="64" style={{ objectFit: 'cover', border: '1px solid var(--hair)' }} /> : null}
+            {tokenImage ? <img src={tokenImage} alt={`${t.name} logo`} width="64" height="64" style={{ objectFit: 'cover', border: '1px solid var(--hair)', borderRadius: '50%' }} /> : null}
             <div><span className="micro">LIVE CONTRACT · {t.network}</span><div className="num" style={{ marginTop: 7, fontSize: 13, overflowWrap: 'anywhere' }}>{t.contract}</div></div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, flexWrap: 'wrap' }}><CopyAddress address={t.contract} /><a className="btn btn--ghost" href={t.explorer} target="_blank" rel="noopener noreferrer">View Contract ↗</a></div>
           </div>}

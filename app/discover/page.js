@@ -20,7 +20,18 @@ export default function DiscoverPage() {
 
   useEffect(() => {
     let active = true;
-    loadLiveTokens().then((live) => { if (active && live.length) setTokens(live); }).catch(() => {});
+    loadLiveTokens().then(async (live) => {
+      if (!active || !live.length) return;
+      const enriched = await Promise.all(live.map(async (token) => {
+        try {
+          const r = await fetch(`/api/token-live?token=${token.contract}`, { cache: 'no-store' });
+          const liveData = r.ok ? await r.json() : null;
+          if (!liveData || liveData.error) return token;
+          return { ...token, live: liveData, mcapEth: Number(liveData.marketCapEth) || 0, liquidityEth: Number(liveData.liquidityEth) || 0, holders: Number(liveData.holders) || 0 };
+        } catch { return token; }
+      }));
+      if (active) setTokens(enriched);
+    }).catch(() => {});
     return () => { active = false; };
   }, []);
 
@@ -76,7 +87,7 @@ export default function DiscoverPage() {
             {rows.map((t, i) => (
               <Reveal key={t.slug} delay={Math.min(i * 40, 240)}>
                 <Link href={`/project/${t.slug}`} className="trow" style={{ display: 'grid' }}>
-                  <span className="trow__idx num">{String(i + 1).padStart(2, '0')}</span><span className="trow__mono">{imageUrl(t.image) ? <img src={imageUrl(t.image)} alt={`${t.ticker} logo`} width="34" height="34" /> : <span>{t.ticker?.slice(0, 2) || '—'}</span>}</span><span className="trow__name"><b>{t.name}{t.cat.includes('new') && <span className="tagline-pill">New</span>}{t.cat.includes('trending') && <span className="tagline-pill">Trending</span>}</b><span>{t.blurb}</span></span><span className="trow__stat trow__stat--h num">{fmtUsd(t.mcap)}</span><span className="trow__stat num">{fmtUsd(t.vol)}</span><span className="trow__stat trow__stat--h num">{fmtNum(t.holders)}</span><span className="trow__spark"><svg viewBox="0 0 100 34" preserveAspectRatio="none"><path d={sparkPath(t.slug)} /></svg></span><span className="trow__stat num" style={{ color: 'var(--dim)' }}>{t.age}</span><span className="trow__go">→</span>
+                  <span className="trow__idx num">{String(i + 1).padStart(2, '0')}</span><span className="trow__mono">{imageUrl(t.image) ? <img src={imageUrl(t.image)} alt={`${t.ticker} logo`} width="34" height="34" /> : <span>{t.ticker?.slice(0, 2) || '—'}</span>}</span><span className="trow__name"><b>{t.name}{t.cat.includes('new') && <span className="tagline-pill">New</span>}{t.cat.includes('trending') && <span className="tagline-pill">Trending</span>}</b><span>{t.blurb}</span></span><span className="trow__stat trow__stat--h num">{t.mcapEth ? `${t.mcapEth.toFixed(3)} ETH` : '—'}</span><span className="trow__stat num">{t.vol ? fmtUsd(t.vol) : '—'}</span><span className="trow__stat trow__stat--h num">{t.holders ? fmtNum(t.holders) : '—'}</span><span className="trow__spark"><svg viewBox="0 0 100 34" preserveAspectRatio="none"><path d={sparkPath(t.slug)} /></svg></span><span className="trow__stat num" style={{ color: 'var(--dim)' }}>{t.age}</span><span className="trow__go">→</span>
                 </Link>
               </Reveal>
             ))}
