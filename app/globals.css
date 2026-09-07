@@ -39,4 +39,38 @@
   .nav__burger span{width:22px}
   .launch-card{padding:14px}
   .micro{font-size:9px;letter-spacing:.16em}
+  .trade-terminal{padding-top:20px;padding-bottom:70px}
+  .trade-terminal__back{align-items:flex-start;flex-direction:column;gap:8px}
+  .trade-terminal__head{padding:22px 0;gap:18px}
+  .trade-token{width:100%;gap:10px;align-items:flex-start}
+  .trade-token img,.trade-token__fallback{width:48px;height:48px;flex:0 0 48px}
+  .trade-token h1{font-size:clamp(24px,8vw,34px);line-height:1.05;overflow-wrap:anywhere}
+  .trade-token span:last-child{display:block;max-width:100%;overflow-wrap:anywhere;font-size:10px}
+  .trade-head-actions{width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  .trade-token-select{display:grid;gap:6px;width:100%}
+  .trade-token-select select{width:100%;min-width:0;border:1px solid var(--hair);background:var(--paper);padding:12px;font:inherit;font-size:13px;color:var(--ink)}
+  .trade-head-actions .btn{justify-content:center;width:100%}
+  .trade-terminal__chart{padding:16px 14px 0;min-width:0;overflow:hidden}
+  .trade-terminal__chart svg{height:190px}
+  .panel-label b{font-size:21px;max-width:60%;overflow-wrap:anywhere;text-align:right}
+  .chart-range{overflow-x:auto;white-space:nowrap}
+  .chart-range button{flex:0 0 auto}
+  .terminal-stats{margin:0 -14px;grid-template-columns:1fr}
+  .terminal-stats div{border-right:0;border-bottom:1px solid var(--hair);padding:12px 14px}
+  .terminal-stats div:last-child{border-bottom:0}
+  .trade-terminal__box{padding:16px;min-width:0}
+  .trade-balance b{max-width:58%;overflow-wrap:anywhere;text-align:right}
+  .trade-input{padding:12px}
+  .trade-input input{min-width:0;font-size:20px}
+  .trade-row{align-items:center;flex-wrap:wrap}
+  .trade-row select{margin-left:auto;max-width:110px}
+  .trade-row input{max-width:56px}
+  .trade-submit{font-size:10px;padding:14px 8px;overflow-wrap:anywhere}
+  .trade-market-picker{display:grid;gap:10px;margin-top:28px}
+  .trade-market-picker button{display:grid;grid-template-columns:64px 1fr;gap:3px 12px;text-align:left;border:1px solid var(--hair);background:var(--paper);padding:14px;font:inherit;cursor:pointer}
+  .trade-market-picker button span{grid-row:span 2;font-weight:700;font-size:16px}
+  .trade-market-picker button b{font-size:14px}
+  .trade-market-picker button small{font-family:monospace;font-size:9px;color:var(--dim);overflow-wrap:anywhere}
+  .trade-empty{margin:24px 0;color:var(--dim)}
 }
+

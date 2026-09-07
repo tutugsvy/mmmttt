@@ -44,7 +44,8 @@ function Chart({ seed }) {
 }
 
 export default function TradePage() {
-  const [token, setToken] = useState(TOKENS[0] || null);
+  const [tokens, setTokens] = useState([]);
+  const [token, setToken] = useState(null);
   const [side, setSide] = useState('buy');
   const [amount, setAmount] = useState('');
   const [wallet, setWallet] = useState(null);
@@ -55,12 +56,17 @@ export default function TradePage() {
   const [slippage, setSlippage] = useState('1');
 
   useEffect(() => {
+    fetch('/api/motive-tokens', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => {
+      const available = Array.isArray(data?.tokens) ? data.tokens : [];
+      setTokens(available);
+      const address = new URLSearchParams(window.location.search).get('token')?.toLowerCase();
+      const selected = address ? available.find((x) => x.contract?.toLowerCase() === address) : available[0];
+      if (selected) setToken(selected);
+    }).catch(() => {});
     fetch('/api/market', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => data && !data.error && setLive(data)).catch(() => {});
   }, []);
 
   useEffect(() => {
-    const address = new URLSearchParams(window.location.search).get('token')?.toLowerCase();
-    if (address) setToken(TOKENS.find((x) => x.contract.toLowerCase() === address) || { name: 'Unknown token', ticker: 'TOKEN', contract: address, network: 'Robinhood Chain', image: '', mcap: 0, vol: 0, holders: 0, social: {} });
     const provider = window.ethereum;
     if (!provider) return undefined;
     const sync = async () => {
@@ -149,7 +155,7 @@ export default function TradePage() {
     } catch (e) { setMessage(e?.message || 'Swap failed.'); }
   }
 
-  if (!token) return <main className="page-enter"><section className="pagehead"><div className="wrap"><h1 className="h1">No token selected.</h1><p className="lede">Choose a token from Discover to open its market.</p><Link href="/discover" className="btn btn--solid">Explore tokens →</Link></div></section></main>;
+  if (!token) return <main className="page-enter"><section className="pagehead"><div className="wrap"><span className="pagehead__crumb micro micro--ink">Motive / Trade</span><h1 className="h1">Choose a token.</h1><p className="lede">Trade any token launched through MOTIVE. Select a market below or open Trade from a token page.</p>{tokens.length ? <div className="trade-market-picker">{tokens.map((item) => <button type="button" key={item.contract} onClick={() => { setToken(item); window.history.replaceState({}, '', `/trade?token=${item.contract}`); }}><span>{item.ticker}</span><b>{item.name}</b><small>{item.contract}</small></button>)}</div> : <><p className="trade-empty">No MOTIVE tokens are indexed yet.</p><Link href="/discover" className="btn btn--solid">Explore Discover →</Link></>}</div></section></main>;
   const price = live?.priceEth ? '$' + live.priceEth.toFixed(8) : (token.mcap > 0 ? '$' + (token.mcap / 1e9).toFixed(4) : '—');
 
   return <main className="page-enter"><div className="wrap trade-terminal">
@@ -157,7 +163,7 @@ export default function TradePage() {
     <div className="trade-terminal__head"><div className="trade-token">
       {live?.logo || token.image ? <img src={live?.logo || token.image} alt={`${token.name} logo`} /> : <span className="trade-token__fallback">{token.ticker?.slice(0,2)}</span>}
       <div><span className="micro">MOTIVE MARKET</span><h1>{token.name}</h1><span>${token.ticker} · {token.contract}</span></div>
-    </div><a className="btn btn--ghost" href={token.explorer} target="_blank" rel="noreferrer">Explorer ↗</a></div>
+    </div><div className="trade-head-actions"><label className="trade-token-select"><span className="micro">MARKET</span><select value={token.contract} onChange={(e) => { const next = tokens.find((x) => x.contract === e.target.value); if (next) { setToken(next); window.history.replaceState({}, '', `/trade?token=${next.contract}`); } }}>{tokens.map((item) => <option key={item.contract} value={item.contract}>{item.ticker} — {item.name}</option>)}</select></label><a className="btn btn--ghost" href={token.explorer} target="_blank" rel="noreferrer">Explorer ↗</a></div></div>
     <div className="trade-terminal__grid">
       <section className="trade-terminal__chart"><div className="panel-label"><span>Price</span><b>{price}</b></div><Chart seed={token.contract} /><div className="chart-range"><button>5M</button><button className="on">1H</button><button>6H</button><button>1D</button><button>ALL</button></div><div className="terminal-stats"><div><span>Market cap</span><b>{live?.marketCapEth ? `${live.marketCapEth.toFixed(2)} ETH` : fmtUsd(token.mcap)}</b></div><div><span>Volume 24H</span><b>{live?.volume24h ? `${live.volume24h.toFixed(2)} ETH` : fmtUsd(token.vol)}</b></div><div><span>Holders</span><b>{live?.holders ?? fmtNum(token.holders)}</b></div></div></section>
       <aside className="trade-terminal__box"><div className="trade-tabs"><button className={side === 'buy' ? 'active buy' : ''} onClick={() => setSide('buy')}>Buy</button><button className={side === 'sell' ? 'active sell' : ''} onClick={() => setSide('sell')}>Sell</button></div><div className="trade-balance"><span>Wallet</span><b>{wallet ? `${wallet.slice(0,6)}…${wallet.slice(-4)}` : 'Not connected'}</b></div><label>{side === 'buy' ? 'You pay' : 'You sell'}<div className="trade-input"><input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="0.00" /><span>{side === 'buy' ? 'ETH' : `$${token.ticker}`}</span></div></label><div className="quick-amounts"><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(25)}>25%</button><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(50)}>50%</button><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(75)}>75%</button><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(100)}>MAX</button></div><div className="trade-row"><span>Slippage</span><select value={slippageMode} onChange={(e) => setSlippageMode(e.target.value)}><option value="auto">Auto</option><option value="manual">Manual</option></select>{slippageMode === 'manual' && <input aria-label="Slippage percent" value={slippage} onChange={(e) => setSlippage(e.target.value.replace(/[^0-9.]/g, ''))} style={{ width: 56 }} />}</div><button className="trade-submit" onClick={wallet ? submit : connect}>{wallet ? `${side} $${token.ticker}` : 'Connect wallet'}</button>{message && <p className="trade-message">{message}</p>}</aside>
