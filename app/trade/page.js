@@ -32,16 +32,18 @@ async function readTokenDecimals(provider, address) {
 
 function Chart({ seed }) {
   const [candles, setCandles] = useState([]);
+  const [range, setRange] = useState('1H');
+  const resolutions = { '5M': '1m', '1H': '5m', '6H': '15m', '1D': '1h', ALL: '4h' };
   useEffect(() => {
     let alive = true;
-    const load = () => fetch(`/api/kline?resolution=5m&token=${seed}`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((x) => { if (alive && x?.candles?.length) setCandles(x.candles); }).catch(() => {});
+    const load = () => fetch(`/api/kline?resolution=${resolutions[range]}&token=${seed}`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((x) => { if (alive) setCandles(x?.candles || []); }).catch(() => { if (alive) setCandles([]); });
     load(); const timer = setInterval(load, 15000); return () => { alive = false; clearInterval(timer); };
-  }, [seed]);
+  }, [seed, range]);
   const data = useMemo(() => candles.map((x) => Number(x.close)).filter(Number.isFinite).slice(-96), [candles]);
   const points = data.length > 1 ? data : [0, 1];
   const min = Math.min(...points); const max = Math.max(...points); const W = 900; const H = 280;
   const line = data.length > 1 ? 'M' + points.map((v, i) => `${((i / (points.length - 1)) * W).toFixed(1)} ${(H - ((v - min) / (max - min || 1)) * 210 - 24).toFixed(1)}`).join(' L ') : '';
-  return <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-label={data.length > 1 ? 'Live indexed token price chart' : 'Waiting for indexed chart data'}><g className="grid">{[.25,.5,.75].map((f) => <line key={f} x1="0" x2={W} y1={H*f} y2={H*f} />)}</g>{line && <path className="line" d={line} />}</svg>;
+  return <><svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-label={data.length > 1 ? 'Live indexed token price chart' : 'Waiting for indexed chart data'}><g className="grid">{[.25,.5,.75].map((f) => <line key={f} x1="0" x2={W} y1={H*f} y2={H*f} />)}</g>{line && <path className="line" d={line} />}</svg>{data.length < 2 && <p className="trade-chart-status">No indexed candles for this range yet.</p>}<div className="chart-range">{Object.keys(resolutions).map((x) => <button key={x} className={x === range ? 'on' : ''} type="button" onClick={() => setRange(x)}>{x}</button>)}</div></>;;
 }
 
 export default function TradePage() {
@@ -52,6 +54,7 @@ export default function TradePage() {
   const [wallet, setWallet] = useState(null);
   const [message, setMessage] = useState('');
   const [live, setLive] = useState(null);
+  const [volume24h, setVolume24h] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [slippageMode, setSlippageMode] = useState('auto');
   const [slippage, setSlippage] = useState('1');
@@ -64,7 +67,9 @@ export default function TradePage() {
       const selected = address ? available.find((x) => x.contract?.toLowerCase() === address) : available[0];
       if (selected) setToken(selected);
     }).catch(() => {});
-    fetch('/api/market', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => data && !data.error && setLive(data)).catch(() => {});
+    const address = new URLSearchParams(window.location.search).get('token')?.toLowerCase();
+    if (address) fetch(`/api/token-live?token=${address}`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => data && !data.error && setLive(data)).catch(() => {});
+    if (address) fetch(`/api/kline?resolution=1h&token=${address}`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((data) => setVolume24h((data?.candles || []).slice(-24).reduce((sum, x) => sum + (Number(x.volume) || 0), 0))).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -166,7 +171,7 @@ export default function TradePage() {
       <div><span className="micro">MOTIVE MARKET</span><h1>{token.name}</h1><span>${token.ticker} · {token.contract}</span></div>
     </div><div className="trade-head-actions"><label className="trade-token-select"><span className="micro">MARKET</span><select value={token.contract} onChange={(e) => { const next = tokens.find((x) => x.contract === e.target.value); if (next) { setToken(next); window.history.replaceState({}, '', `/trade?token=${next.contract}`); } }}>{tokens.map((item) => <option key={item.contract} value={item.contract}>{item.ticker} — {item.name}</option>)}</select></label><a className="btn btn--ghost" href={token.explorer} target="_blank" rel="noreferrer">Explorer ↗</a></div></div>
     <div className="trade-terminal__grid">
-      <section className="trade-terminal__chart"><div className="panel-label"><span>Price</span><b>{price}</b></div><Chart seed={token.contract} /><div className="chart-range"><button>5M</button><button className="on">1H</button><button>6H</button><button>1D</button><button>ALL</button></div><div className="terminal-stats"><div><span>Market cap</span><b>{live?.marketCapEth ? `${live.marketCapEth.toFixed(2)} ETH` : fmtUsd(token.mcap)}</b></div><div><span>Volume 24H</span><b>{live?.volume24h ? `${live.volume24h.toFixed(2)} ETH` : fmtUsd(token.vol)}</b></div><div><span>Holders</span><b>{live?.holders ?? fmtNum(token.holders)}</b></div></div></section>
+      <section className="trade-terminal__chart"><div className="panel-label"><span>Price</span><b>{live?.priceEth ? `${live.priceEth.toFixed(10)} ETH` : price}</b></div><Chart seed={token.contract} /><div className="terminal-stats"><div><span>Market cap</span><b>{live?.marketCapEth ? `${live.marketCapEth.toFixed(2)} ETH` : '—'}</b></div><div><span>Volume 24H</span><b>{volume24h ? `${volume24h.toFixed(2)} ETH` : '—'}</b></div><div><span>Holders</span><b>{live?.holders ?? '—'}</b></div></div></section>
       <aside className="trade-terminal__box"><div className="trade-tabs"><button className={side === 'buy' ? 'active buy' : ''} onClick={() => setSide('buy')}>Buy</button><button className={side === 'sell' ? 'active sell' : ''} onClick={() => setSide('sell')}>Sell</button></div><div className="trade-balance"><span>Wallet</span><b>{wallet ? `${wallet.slice(0,6)}…${wallet.slice(-4)}` : 'Not connected'}</b></div><label>{side === 'buy' ? 'You pay' : 'You sell'}<div className="trade-input"><input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="0.00" /><span>{side === 'buy' ? 'ETH' : `$${token.ticker}`}</span></div></label><div className="quick-amounts"><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(25)}>25%</button><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(50)}>50%</button><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(75)}>75%</button><button type="button" disabled={balanceLoading} onClick={() => setQuickAmount(100)}>MAX</button></div><div className="trade-row"><span>Slippage</span><select value={slippageMode} onChange={(e) => setSlippageMode(e.target.value)}><option value="auto">Auto</option><option value="manual">Manual</option></select>{slippageMode === 'manual' && <input aria-label="Slippage percent" value={slippage} onChange={(e) => setSlippage(e.target.value.replace(/[^0-9.]/g, ''))} style={{ width: 56 }} />}</div><button className="trade-submit" onClick={wallet ? submit : connect}>{wallet ? `${side} $${token.ticker}` : 'Connect wallet'}</button>{message && <p className="trade-message">{message}</p>}</aside>
     </div>
     <p className="trade-footnote">Your wallet submits every transaction. MOTIVE does not custody assets.</p>

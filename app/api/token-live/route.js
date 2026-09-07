@@ -1,6 +1,8 @@
 import { loadTokenLive } from '../../../lib/live';
 
-export async function GET() {
-  try { return Response.json(await loadTokenLive(), { headers: { 'cache-control': 'no-store' } }); }
+export const dynamic = 'force-dynamic';
+export async function GET(request) {
+  const token = new URL(request.url).searchParams.get('token');
+  try { return Response.json(await loadTokenLive(token), { headers: { 'cache-control': 'no-store' } }); }
   catch (e) { return Response.json({ error: e?.message || 'live data unavailable' }, { status: 502 }); }
 }

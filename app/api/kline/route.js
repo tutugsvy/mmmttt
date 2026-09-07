@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 
-const TOKEN = '0xc37f9b4eb729a1833f6bbef3400ce4be203dc691';
+const DEFAULT_TOKEN = '0xc37f9b4eb729a1833f6bbef3400ce4be203dc691';
 const BIN = '/root/.nvm/versions/node/v22.22.0/bin/gmgn-cli';
 
 function run(args) {
@@ -13,10 +13,12 @@ function run(args) {
 export const dynamic = 'force-dynamic';
 export async function GET(request) {
   const resolution = new URL(request.url).searchParams.get('resolution') || '5m';
+  const token = String(new URL(request.url).searchParams.get('token') || DEFAULT_TOKEN).toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(token)) return Response.json({ error: 'Invalid token address' }, { status: 400 });
   const allowed = new Set(['30s', '1m', '5m', '15m', '1h', '4h', '1d']);
   if (!allowed.has(resolution)) return Response.json({ error: 'Invalid resolution' }, { status: 400 });
   try {
-    const result = await run(['market', 'kline', '--chain', 'robinhood', '--address', TOKEN, '--resolution', resolution, '--raw']);
-    return Response.json({ address: TOKEN, resolution, candles: result.list || [] }, { headers: { 'cache-control': 'no-store' } });
+    const result = await run(['market', 'kline', '--chain', 'robinhood', '--address', token, '--resolution', resolution, '--raw']);
+    return Response.json({ address: token, resolution, candles: result.list || [] }, { headers: { 'cache-control': 'no-store' } });
   } catch (error) { return Response.json({ error: error?.message || 'K-line unavailable' }, { status: 502 }); }
 }
