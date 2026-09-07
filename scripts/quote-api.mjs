@@ -20,7 +20,7 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods
 
 function json(res, status, body) { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', ...cors }); res.end(JSON.stringify(body)); }
 function word(hex, index = 0) { return BigInt(`0x${String(hex).slice(2 + index * 64, 2 + (index + 1) * 64) || '0'}`); }
-function reserves(hex) { if (typeof hex !== 'string' || !/^0x[0-9a-f]+$/i.test(hex) || hex.length < 258) throw new Error('Curve reserves response is invalid.'); return [word(hex, 0), word(hex, 1)]; }
+function reserves(hex) { if (typeof hex !== 'string' || !/^0x[0-9a-f]+$/i.test(hex) || hex.length < 2 + 64 * 2) throw new Error('Curve reserves response is invalid.'); return [word(hex, 0), word(hex, 1)]; }
 async function rpc(method, params) { const r = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method, params }) }); const j = await r.json(); if (j.error) throw new Error(j.error.message || 'RPC error'); return j.result; }
 async function readRegistry() { try { return JSON.parse(await fs.readFile(REGISTRY, 'utf8')); } catch { return []; } }
 async function writeRegistry(items) { await fs.mkdir(path.dirname(REGISTRY), { recursive: true }); await fs.writeFile(REGISTRY, JSON.stringify(items, null, 2)); }
